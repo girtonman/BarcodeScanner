@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 // use the all-in-one version of zxing that we built
 //------------------------------------------------------------------------------
-#import "zxing-all-in-one.h"
+#import "ZXingObjC/ZXingObjC.h"
 #import <Cordova/CDVPlugin.h>
 
 
@@ -79,10 +79,10 @@
 - (void)openDialog;
 - (NSString*)setUpCaptureSession;
 - (void)captureOutput:(AVCaptureOutput*)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection*)connection;
-- (NSString*)formatStringFrom:(zxing::BarcodeFormat)format;
+- (NSString*)formatStringFrom:(ZXBarcodeFormat)format;
 - (UIImage*)getImageFromSample:(CMSampleBufferRef)sampleBuffer;
-- (zxing::Ref<zxing::LuminanceSource>) getLuminanceSourceFromSample:(CMSampleBufferRef)sampleBuffer imageBytes:(uint8_t**)ptr;
-- (UIImage*) getImageFromLuminanceSource:(zxing::LuminanceSource*)luminanceSource;
+- (ZXLuminanceSource*) getLuminanceSourceFromSample:(CMSampleBufferRef)sampleBuffer imageBytes:(uint8_t**)ptr;
+- (UIImage*) getImageFromLuminanceSource:(ZXLuminanceSource*)luminanceSource;
 - (void)dumpImage:(UIImage*)image;
 @end
 
@@ -295,8 +295,8 @@ parentViewController:(UIViewController*)parentViewController
 //--------------------------------------------------------------------------
 - (void)scanBarcode {
     
-//    self.captureSession = nil;
-//    self.previewLayer = nil;
+    //    self.captureSession = nil;
+    //    self.previewLayer = nil;
     NSString* errorMessage = [self setUpCaptureSession];
     if (errorMessage) {
         [self barcodeScanFailed:errorMessage];
@@ -487,174 +487,116 @@ parentViewController:(UIViewController*)parentViewController
      }
      ];
     
-    //         [self dumpImage: [[self getImageFromSample:sampleBuffer] autorelease]];
 #endif
     
     
-    using namespace zxing;
-    
-    // LuminanceSource is pretty dumb; we have to give it a pointer to
-    // a byte array, but then can't get it back out again.  We need to
-    // get it back to free it.  Saving it in imageBytes.
-    uint8_t* imageBytes;
-    
-    //        NSTimeInterval timeStart = [NSDate timeIntervalSinceReferenceDate];
-    
     try {
-        DecodeHints decodeHints;
-        decodeHints.addFormat(BarcodeFormat_QR_CODE);
-        decodeHints.addFormat(BarcodeFormat_DATA_MATRIX);
-        decodeHints.addFormat(BarcodeFormat_UPC_E);
-        decodeHints.addFormat(BarcodeFormat_UPC_A);
-        decodeHints.addFormat(BarcodeFormat_EAN_8);
-        decodeHints.addFormat(BarcodeFormat_EAN_13);
-        decodeHints.addFormat(BarcodeFormat_CODE_128);
-        decodeHints.addFormat(BarcodeFormat_CODE_39);
-        decodeHints.addFormat(BarcodeFormat_ITF);
-        
+        ZXDecodeHints *decodeHints = [[ZXDecodeHints alloc] init];
+        [decodeHints addPossibleFormat:kBarcodeFormatQRCode];
+        [decodeHints addPossibleFormat:kBarcodeFormatDataMatrix];
+        [decodeHints addPossibleFormat:kBarcodeFormatUPCE];
+        [decodeHints addPossibleFormat:kBarcodeFormatUPCA];
+        [decodeHints addPossibleFormat:kBarcodeFormatUPCEANExtension];
+        [decodeHints addPossibleFormat:kBarcodeFormatRSSExpanded];
+        [decodeHints addPossibleFormat:kBarcodeFormatRSS14];
+        [decodeHints addPossibleFormat:kBarcodeFormatPDF417];
+        [decodeHints addPossibleFormat:kBarcodeFormatITF];
+        [decodeHints addPossibleFormat:kBarcodeFormatEan8];
+        [decodeHints addPossibleFormat:kBarcodeFormatEan13];
+        [decodeHints addPossibleFormat:kBarcodeFormatCode93];
+        [decodeHints addPossibleFormat:kBarcodeFormatCode39];
+        [decodeHints addPossibleFormat:kBarcodeFormatCode128];
+        [decodeHints addPossibleFormat:kBarcodeFormatCodabar];
+        [decodeHints addPossibleFormat:kBarcodeFormatAztec];
+
         // here's the meat of the decode process
-        Ref<LuminanceSource>   luminanceSource   ([self getLuminanceSourceFromSample: sampleBuffer imageBytes:&imageBytes]);
-        //            [self dumpImage: [[self getImageFromLuminanceSource:luminanceSource] autorelease]];
-        Ref<Binarizer>         binarizer         (new HybridBinarizer(luminanceSource));
-        Ref<BinaryBitmap>      bitmap            (new BinaryBitmap(binarizer));
-        Ref<MultiFormatReader> reader            (new MultiFormatReader());
-        Ref<Result>            result            (reader->decode(bitmap, decodeHints));
-        Ref<String>            resultText        (result->getText());
-        BarcodeFormat          formatVal =       result->getBarcodeFormat();
-        NSString*              format    =       [self formatStringFrom:formatVal];
+
+        CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+        CIImage *ciImage = [CIImage imageWithCVPixelBuffer:imageBuffer];
+        CIContext *temporaryContext = [CIContext contextWithOptions:nil];
+        CGImageRef imageToDecode = [
+            temporaryContext
+                                    createCGImage:ciImage fromRect:CGRectMake(0, 0, CVPixelBufferGetWidth(imageBuffer), CVPixelBufferGetHeight(imageBuffer))];
+        ZXLuminanceSource *luminanceSource = [[[ZXCGImageLuminanceSource alloc] initWithCGImage:imageToDecode] autorelease];
+        ZXBinaryBitmap *bitmap = [ZXBinaryBitmap binaryBitmapWithBinarizer:[ZXHybridBinarizer binarizerWithSource:luminanceSource]];
         
+        NSError *error = nil;
         
-        const char* cString      = resultText->getText().c_str();
-        NSString*   resultString = [[NSString alloc] initWithCString:cString encoding:NSUTF8StringEncoding];
+        ZXMultiFormatReader *reader = [ZXMultiFormatReader reader];
+        ZXResult *result = [reader decode:bitmap hints:decodeHints error:&error];
+        NSString *resultText = result.text;
+        ZXBarcodeFormat formatVal = result.barcodeFormat;
+        NSString *format = [self formatStringFrom:formatVal];
         
-        if ([self checkResult:resultString]) {
-            [self barcodeScanSucceeded:resultString format:format];
+        if([self checkResult:resultText]) {
+            [self barcodeScanSucceeded:resultText format:format];
         }
         
         
         
     }
-    catch (zxing::ReaderException &rex) {
-        //            NSString *message = [[[NSString alloc] initWithCString:rex.what() encoding:NSUTF8StringEncoding] autorelease];
-        //            NSLog(@"decoding: ReaderException: %@", message);
-    }
-    catch (zxing::IllegalArgumentException &iex) {
-        //            NSString *message = [[[NSString alloc] initWithCString:iex.what() encoding:NSUTF8StringEncoding] autorelease];
-        //            NSLog(@"decoding: IllegalArgumentException: %@", message);
-    }
     catch (...) {
         //            NSLog(@"decoding: unknown exception");
         //            [self barcodeScanFailed:@"unknown exception decoding barcode"];
-    }
-    
-    //        NSTimeInterval timeElapsed  = [NSDate timeIntervalSinceReferenceDate] - timeStart;
-    //        NSLog(@"decoding completed in %dms", (int) (timeElapsed * 1000));
-    
-    // free the buffer behind the LuminanceSource
-    if (imageBytes) {
-        free(imageBytes);
     }
 }
 
 //--------------------------------------------------------------------------
 // convert barcode format to string
 //--------------------------------------------------------------------------
-- (NSString*)formatStringFrom:(zxing::BarcodeFormat)format {
-    if (format == zxing::BarcodeFormat_QR_CODE)      return @"QR_CODE";
-    if (format == zxing::BarcodeFormat_DATA_MATRIX)  return @"DATA_MATRIX";
-    if (format == zxing::BarcodeFormat_UPC_E)        return @"UPC_E";
-    if (format == zxing::BarcodeFormat_UPC_A)        return @"UPC_A";
-    if (format == zxing::BarcodeFormat_EAN_8)        return @"EAN_8";
-    if (format == zxing::BarcodeFormat_EAN_13)       return @"EAN_13";
-    if (format == zxing::BarcodeFormat_CODE_128)     return @"CODE_128";
-    if (format == zxing::BarcodeFormat_CODE_39)      return @"CODE_39";
-    if (format == zxing::BarcodeFormat_ITF)          return @"ITF";
-    return @"???";
-}
-
-//--------------------------------------------------------------------------
-// convert capture's sample buffer (scanned picture) into the thing that
-// zxing needs.
-//--------------------------------------------------------------------------
-- (zxing::Ref<zxing::LuminanceSource>) getLuminanceSourceFromSample:(CMSampleBufferRef)sampleBuffer imageBytes:(uint8_t**)ptr {
-    CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-    CVPixelBufferLockBaseAddress(imageBuffer, 0);
-    
-    size_t   bytesPerRow =            CVPixelBufferGetBytesPerRow(imageBuffer);
-    size_t   width       =            CVPixelBufferGetWidth(imageBuffer);
-    size_t   height      =            CVPixelBufferGetHeight(imageBuffer);
-    uint8_t* baseAddress = (uint8_t*) CVPixelBufferGetBaseAddress(imageBuffer);
-    
-    // only going to get 90% of the min(width,height) of the captured image
-    size_t    greyWidth  = 9 * MIN(width, height) / 10;
-    uint8_t*  greyData   = (uint8_t*) malloc(greyWidth * greyWidth);
-    
-    // remember this pointer so we can free it later
-    *ptr = greyData;
-    
-    if (!greyData) {
-        CVPixelBufferUnlockBaseAddress(imageBuffer,0);
-        throw new zxing::ReaderException("out of memory");
-    }
-    
-    size_t offsetX = (width  - greyWidth) / 2;
-    size_t offsetY = (height - greyWidth) / 2;
-    
-    // pixel-by-pixel ...
-    for (size_t i=0; i<greyWidth; i++) {
-        for (size_t j=0; j<greyWidth; j++) {
-            // i,j are the coordinates from the sample buffer
-            // ni, nj are the coordinates in the LuminanceSource
-            // in this case, there's a rotation taking place
-            size_t ni = greyWidth-j;
-            size_t nj = i;
+- (NSString*)formatStringFrom:(ZXBarcodeFormat)format {
+    switch (format) {
+        case kBarcodeFormatAztec:
+            return @"Aztec";
             
-            size_t baseOffset = (j+offsetY)*bytesPerRow + (i + offsetX)*4;
+        case kBarcodeFormatCodabar:
+            return @"CODABAR";
             
-            // convert from color to grayscale
-            // http://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale
-            size_t value = 0.11 * baseAddress[baseOffset] +
-            0.59 * baseAddress[baseOffset + 1] +
-            0.30 * baseAddress[baseOffset + 2];
+        case kBarcodeFormatCode39:
+            return @"Code 39";
             
-            greyData[nj*greyWidth + ni] = value;
-        }
-    }
-    
-    CVPixelBufferUnlockBaseAddress(imageBuffer,0);
-    
-    using namespace zxing;
-    
-    Ref<LuminanceSource> luminanceSource (
-                                          new GreyscaleLuminanceSource(greyData, (int)greyWidth, (int)greyWidth, 0, 0, (int)greyWidth, (int)greyWidth)
-                                          );
-    
-    return luminanceSource;
-}
-
-//--------------------------------------------------------------------------
-// for debugging
-//--------------------------------------------------------------------------
-- (UIImage*) getImageFromLuminanceSource:(zxing::LuminanceSource*)luminanceSource  {
-    unsigned char* bytes = luminanceSource->getMatrix();
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceGray();
-    CGContextRef context = CGBitmapContextCreate(
-                                                 bytes,
-                                                 luminanceSource->getWidth(), luminanceSource->getHeight(), 8, luminanceSource->getWidth(),
-                                                 colorSpace,
-                                                 kCGImageAlphaNone
-                                                 );
-    
-    CGImageRef cgImage = CGBitmapContextCreateImage(context);
-    UIImage*   image   = [[UIImage alloc] initWithCGImage:cgImage];
-    
-    CGContextRelease(context);
-    CGColorSpaceRelease(colorSpace);
-    CGImageRelease(cgImage);
-    free(bytes);
-    
-    return image;
-}
+        case kBarcodeFormatCode93:
+            return @"Code 93";
+            
+        case kBarcodeFormatCode128:
+            return @"Code 128";
+            
+        case kBarcodeFormatDataMatrix:
+            return @"Data Matrix";
+            
+        case kBarcodeFormatEan8:
+            return @"EAN-8";
+            
+        case kBarcodeFormatEan13:
+            return @"EAN-13";
+            
+        case kBarcodeFormatITF:
+            return @"ITF";
+            
+        case kBarcodeFormatPDF417:
+            return @"PDF417";
+            
+        case kBarcodeFormatQRCode:
+            return @"QR Code";
+            
+        case kBarcodeFormatRSS14:
+            return @"RSS 14";
+            
+        case kBarcodeFormatRSSExpanded:
+            return @"RSS Expanded";
+            
+        case kBarcodeFormatUPCA:
+            return @"UPCA";
+            
+        case kBarcodeFormatUPCE:
+            return @"UPCE";
+            
+        case kBarcodeFormatUPCEANExtension:
+            return @"UPC/EAN extension";
+            
+        default:
+            return @"Unknown";
+    }}
 
 //--------------------------------------------------------------------------
 // for debugging
@@ -905,7 +847,7 @@ parentViewController:(UIViewController*)parentViewController
     overlayView.autoresizesSubviews = YES;
     overlayView.autoresizingMask    = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     overlayView.opaque              = NO;
-
+    
     UIToolbar* toolbar = [[UIToolbar alloc] init];
     toolbar.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
     
@@ -923,10 +865,10 @@ parentViewController:(UIViewController*)parentViewController
                     ];
     
     id flipCamera = [[UIBarButtonItem alloc]
-                       initWithBarButtonSystemItem:UIBarButtonSystemItemCamera
-                       target:(id)self
-                       action:@selector(flipCameraButtonPressed:)
-                       ];
+                     initWithBarButtonSystemItem:UIBarButtonSystemItemCamera
+                     target:(id)self
+                     action:@selector(flipCameraButtonPressed:)
+                     ];
     
 #if USE_SHUTTER
     id shutterButton = [[UIBarButtonItem alloc]

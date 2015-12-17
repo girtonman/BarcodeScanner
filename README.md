@@ -1,28 +1,13 @@
 # PhoneGap Plugin BarcodeScanner
+## Adaptation by CJ Coffey -- [Github](http://github.com/dually8)
 ================================
 
-[![Build Status](https://travis-ci.org/phonegap/phonegap-plugin-barcodescanner.svg)](https://travis-ci.org/phonegap/phonegap-plugin-barcodescanner)
-
-**Note: This repository is no longer maintained. The official repository is now at [phonegap/phonegap-plugin-barcodescanner](http://github.com/phonegap/phonegap-plugin-barcodescanner).**
-
-Cross-platform BarcodeScanner for Cordova / PhoneGap.
-
-Follows the [Cordova Plugin spec](http://cordova.apache.org/docs/en/5.0.0/plugin_ref_spec.md), so that it works with [Plugman](https://github.com/apache/cordova-plugman).
+Original repo can be found [here](https://github.com/phonegap/phonegap-plugin-barcodescanner)
 
 ## Installation
-
-    
-This requires phonegap 5.0+ ( current stable v3.0.0 )
-
-    phonegap plugin add phonegap-plugin-barcodescanner
-
-Older versions of phonegap can still install via the __deprecated__ id ( stale v2.0.1 )
-
-    phonegap plugin add com.phonegap.plugins.barcodescanner
-
-It is also possible to install via repo url directly ( unstable )
-
-    phonegap plugin add https://github.com/phonegap/phonegap-plugin-barcodescanner.git
+```bash
+cordova plugin add https://github.com/dually8/BarcodeScanner.git
+```
 
 ### Supported Platforms
 
@@ -146,6 +131,10 @@ Supported encoding types:
 * PHONE_TYPE
 * SMS_TYPE
 
+Supported encoding OSes
+
+* Android
+
 ```
 A full example could be:
 
@@ -172,11 +161,15 @@ Cancelling a scan on BlackBerry 10 is done by touching the screen.
 So many -- check out the original [iOS](https://github.com/phonegap/phonegap-plugins/tree/DEPRECATED/iOS/BarcodeScanner),  [Android](https://github.com/phonegap/phonegap-plugins/tree/DEPRECATED/Android/BarcodeScanner) and 
 [BlackBerry 10](https://github.com/blackberry/WebWorks-Community-APIs/tree/master/BB10-Cordova/BarcodeScanner) repos.
 
+## Special thanks
+
+[TheLevelUp](https://github.com/TheLevelUp/ZXingObjC.git) -- This version would not be possible without their port of the ZXing library.
+
 ## Licence ##
 
 The MIT License
 
-Copyright (c) 2010 Matt Kane
+Copyright (c) 2015 CJ Coffey
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
