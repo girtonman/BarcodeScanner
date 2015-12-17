@@ -4,6 +4,8 @@
 
 Original repo can be found [here](https://github.com/phonegap/phonegap-plugin-barcodescanner)
 
+Example Cordova app can be found [here](https://github.com/dually8/BarcodeScannerExample)
+
 ## Installation
 ```bash
 cordova plugin add https://github.com/dually8/BarcodeScanner.git
