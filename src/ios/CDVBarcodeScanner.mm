@@ -433,11 +433,11 @@ parentViewController:(UIViewController*)parentViewController
 
     [output setSampleBufferDelegate:self queue:dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0)];
 
-    if (![captureSession canSetSessionPreset:AVCaptureSessionPresetMedium]) {
-        return @"unable to preset medium quality video capture";
+    if (![captureSession canSetSessionPreset:AVCaptureSessionPresetHigh]) {
+        return @"unable to preset high quality video capture";
     }
 
-    captureSession.sessionPreset = AVCaptureSessionPresetMedium;
+    captureSession.sessionPreset = AVCaptureSessionPresetHigh;
 
     if ([captureSession canAddInput:input]) {
         [captureSession addInput:input];
@@ -467,7 +467,10 @@ parentViewController:(UIViewController*)parentViewController
 //--------------------------------------------------------------------------
 - (void)captureOutput:(AVCaptureOutput*)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection*)connection {
 
-    if (!self.capturing) return;
+    if (!self.capturing) {
+        // NSLog(@"!self.capturing");
+        return;
+    }
 
 #if USE_SHUTTER
     if (!self.viewController.shutterPressed) return;
@@ -491,6 +494,7 @@ parentViewController:(UIViewController*)parentViewController
 
 
     try {
+        // NSLog(@"trying to decode");
         ZXDecodeHints *decodeHints = [ZXDecodeHints hints];
         [decodeHints addPossibleFormat:kBarcodeFormatQRCode];
         [decodeHints addPossibleFormat:kBarcodeFormatDataMatrix];
@@ -512,6 +516,7 @@ parentViewController:(UIViewController*)parentViewController
         // here's the meat of the decode process
 
         CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+        CVPixelBufferLockBaseAddress(imageBuffer, 0);
         CIImage *ciImage = [CIImage imageWithCVPixelBuffer:imageBuffer];
         CIContext *temporaryContext = [CIContext contextWithOptions:nil];
         CGImageRef imageToDecode = [
@@ -527,6 +532,10 @@ parentViewController:(UIViewController*)parentViewController
         NSString *resultText = result.text;
         ZXBarcodeFormat formatVal = result.barcodeFormat;
         NSString *format = [self formatStringFrom:formatVal];
+        
+        // clean up
+        CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
+        CGImageRelease(imageToDecode);
 
         if([self checkResult:resultText]) {
             [self barcodeScanSucceeded:resultText format:format];
