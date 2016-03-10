@@ -1,5 +1,6 @@
 # PhoneGap Plugin BarcodeScanner
 ## Adaptation by CJ Coffey -- [Github](http://github.com/dually8)
+## Optimizations for VINs in Code 39 and DataMatrix by Scott Girton -- [Github](http://github.com/girtonman)
 ================================
 
 Original repo can be found [here](https://github.com/phonegap/phonegap-plugin-barcodescanner)
