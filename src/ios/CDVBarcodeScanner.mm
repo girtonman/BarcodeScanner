@@ -505,7 +505,10 @@ parentViewController:(UIViewController*)parentViewController
         CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
         CGImageRelease(imageToDecode);
 		
-        [self barcodeScanSucceeded:resultText format:format];
+		NSLog(@"Format: %@", format);
+		if([format isEqualToString:@"Data Matrix"] || [format isEqualToString:@"Code 39"]) {
+			[self barcodeScanSucceeded:resultText format:format];
+		}
 		
     }
     catch (...) {
