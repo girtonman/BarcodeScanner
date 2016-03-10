@@ -461,22 +461,8 @@ parentViewController:(UIViewController*)parentViewController
     try {
         // NSLog(@"trying to decode");
         ZXDecodeHints *decodeHints = [ZXDecodeHints hints];
-        [decodeHints addPossibleFormat:kBarcodeFormatQRCode];
         [decodeHints addPossibleFormat:kBarcodeFormatDataMatrix];
-        [decodeHints addPossibleFormat:kBarcodeFormatUPCE];
-        [decodeHints addPossibleFormat:kBarcodeFormatUPCA];
-        [decodeHints addPossibleFormat:kBarcodeFormatUPCEANExtension];
-        [decodeHints addPossibleFormat:kBarcodeFormatRSSExpanded];
-        [decodeHints addPossibleFormat:kBarcodeFormatRSS14];
-        [decodeHints addPossibleFormat:kBarcodeFormatPDF417];
-        [decodeHints addPossibleFormat:kBarcodeFormatITF];
-        [decodeHints addPossibleFormat:kBarcodeFormatEan8];
-        [decodeHints addPossibleFormat:kBarcodeFormatEan13];
-        [decodeHints addPossibleFormat:kBarcodeFormatCode93];
         [decodeHints addPossibleFormat:kBarcodeFormatCode39];
-        [decodeHints addPossibleFormat:kBarcodeFormatCode128];
-        [decodeHints addPossibleFormat:kBarcodeFormatCodabar];
-        [decodeHints addPossibleFormat:kBarcodeFormatAztec];
         
         // here's the meat of the decode process
         
