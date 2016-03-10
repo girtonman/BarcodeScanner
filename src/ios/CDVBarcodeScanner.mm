@@ -63,7 +63,6 @@
 @property (nonatomic, retain) AVCaptureSession*           captureSession;
 @property (nonatomic, retain) AVCaptureVideoPreviewLayer* previewLayer;
 @property (nonatomic, retain) NSString*                   alternateXib;
-@property (nonatomic, retain) NSMutableArray*             results;
 @property (nonatomic)         BOOL                        is1D;
 @property (nonatomic)         BOOL                        is2D;
 @property (nonatomic)         BOOL                        capturing;
@@ -245,7 +244,6 @@
 @synthesize is1D                 = _is1D;
 @synthesize is2D                 = _is2D;
 @synthesize capturing            = _capturing;
-@synthesize results              = _results;
 
 SystemSoundID _soundFileObject;
 
@@ -265,7 +263,6 @@ parentViewController:(UIViewController*)parentViewController
     self.is1D      = YES;
     self.is2D      = YES;
     self.capturing = NO;
-    self.results = [NSMutableArray new];
     
     CFURLRef soundFileURLRef  = CFBundleCopyResourceURL(CFBundleGetMainBundle(), CFSTR("CDVBarcodeScanner.bundle/beep"), CFSTR ("caf"), NULL);
     AudioServicesCreateSystemSoundID(soundFileURLRef, &_soundFileObject);
@@ -282,7 +279,6 @@ parentViewController:(UIViewController*)parentViewController
     self.captureSession = nil;
     self.previewLayer = nil;
     self.alternateXib = nil;
-    self.results = nil;
     
     self.capturing = NO;
     
@@ -328,37 +324,6 @@ parentViewController:(UIViewController*)parentViewController
     // viewcontroller holding onto a reference to us, release them so they
     // will release us
     self.viewController = nil;
-}
-
-//--------------------------------------------------------------------------
-- (BOOL)checkResult:(NSString *)result {
-    [self.results addObject:result];
-    
-    NSInteger treshold = 7;
-    
-    if (self.results.count > treshold) {
-        [self.results removeObjectAtIndex:0];
-    }
-    
-    if (self.results.count < treshold)
-    {
-        return NO;
-    }
-    
-    BOOL allEqual = YES;
-    NSString *compareString = [self.results objectAtIndex:0];
-    
-    for (NSString *aResult in self.results)
-    {
-        if (![compareString isEqualToString:aResult])
-        {
-            allEqual = NO;
-            //NSLog(@"Did not fit: %@",self.results);
-            break;
-        }
-    }
-    
-    return allEqual;
 }
 
 //--------------------------------------------------------------------------
@@ -539,13 +504,9 @@ parentViewController:(UIViewController*)parentViewController
         // clean up
         CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
         CGImageRelease(imageToDecode);
-        
-        if([self checkResult:resultText]) {
-            [self barcodeScanSucceeded:resultText format:format];
-        }
-        
-        
-        
+		
+        [self barcodeScanSucceeded:resultText format:format];
+		
     }
     catch (...) {
         //            NSLog(@"decoding: unknown exception");
@@ -980,7 +941,11 @@ parentViewController:(UIViewController*)parentViewController
 
 - (BOOL)shouldAutorotate
 {
-    return NO;
+    if ((self.orientationDelegate != nil) && [self.orientationDelegate respondsToSelector:@selector(shouldAutorotate)]) {
+        return [self.orientationDelegate shouldAutorotate];
+    }
+    
+    return YES;
 }
 
 - (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation
@@ -990,6 +955,9 @@ parentViewController:(UIViewController*)parentViewController
 
 - (NSUInteger)supportedInterfaceOrientations
 {
+	if ((self.orientationDelegate != nil) && [self.orientationDelegate respondsToSelector:@selector(supportedInterfaceOrientations)]) {
+        return [self.orientationDelegate supportedInterfaceOrientations];
+    }
     return UIInterfaceOrientationMaskPortrait;
 }
 

@@ -36,8 +36,7 @@
   if (result) {
     return result;
   } else if (decodeError.code == ZXNotFoundError) {
-    BOOL tryHarder = hints != nil && hints.tryHarder;
-    if (tryHarder && [image rotateSupported]) {
+    if ([image rotateSupported]) {
       ZXBinaryBitmap *rotatedImage = [image rotateCounterClockwise];
       ZXResult *result = [self doDecode:rotatedImage hints:hints error:error];
       if (!result) {
